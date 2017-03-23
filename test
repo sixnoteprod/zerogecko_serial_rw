@@ -1,0 +1,347 @@
+/**************************************************************************//**
+ * @file
+ * @brief Empty Project
+ * @author Energy Micro AS
+ * @version 3.20.2
+ ******************************************************************************
+ * @section License
+ * <b>(C) Copyright 2014 Silicon Labs, http://www.silabs.com</b>
+ *******************************************************************************
+ *
+ * This file is licensed under the Silicon Labs Software License Agreement. See 
+ * "http://developer.silabs.com/legal/version/v11/Silicon_Labs_Software_License_Agreement.txt"  
+ * for details. Before using this software for any purpose, you must agree to the 
+ * terms of that agreement.
+ *
+ ******************************************************************************/
+#include "em_device.h"
+#include "em_chip.h"
+
+#include "stdio.h"
+#include "stdlib.h"
+#include "stdint.h"
+
+/**************************************************************************//**
+ * @brief  Main function
+ *****************************************************************************/
+
+void HFRCO_Enable();
+void HFXO_Setup();
+void HFXO_Select();
+void HFRCO_SetBand(int bandval);
+
+void CMU_USARTEnClk();
+void CMU_GPIOEnClk();
+
+void GPIO_TxRxPinSetup();
+
+void USART_OvsSet(int rate);
+void USART_ClearIRQ();
+void USART_8N1();
+void USART_TxRxEnable();
+void USART_PinLocationSet(int location);
+void USART_SetBaud(int rate);
+void USART_ClkPol(char boolean);
+
+char* USART_rxRead();
+void USART_txTransmit(char* txComm);
+
+int main(void) {
+  /* Chip errata */
+  CHIP_Init();
+
+  	HFRCO_Enable();
+  	//HFRCO_SetBand(14);
+    HFXO_Setup();
+    HFXO_Select();
+
+    CMU_USARTEnClk();
+    CMU_GPIOEnClk();
+
+    GPIO_TxRxPinSetup();
+
+    USART_OvsSet(16);
+    USART_ClearIRQ();
+    USART_8N1();
+    USART_TxRxEnable();
+    USART_PinLocationSet(3);
+    USART_SetBaud(9600);
+    USART_ClkPol(0);
+
+  /* Infinite loop */
+  while (1) {
+
+      /*
+	  char txComm[3] = "01";
+	  int i = 0;
+
+	  while(!(USART1->STATUS & USART_STATUS_TXBL)){
+	  			  //do nothing until buffer empty
+	  }
+	  USART1->TXDATA = txComm[i];
+	  i++;
+
+	   */
+
+	  char txComm[3] = "01";
+	  int txlen = strlen(txComm);
+
+	  for(int i=0; i < txlen; i++){
+	  		while(!(USART1->STATUS & USART_STATUS_TXBL)){
+	  		//do nothing until buffer empty
+	  }
+	  USART1->TXDATA = txComm[i];
+	  }
+
+
+
+
+
+	  /*
+
+	  char* rxreturn_ptr = NULL;
+
+	  	if(!(USART1->STATUS & USART_STATUS_RXFULL)){
+	  		USART1->IFC = _USART_IFC_RXFULL_DEFAULT;
+	  	} else {
+	  		rxreturn_ptr = USARTrxRead();
+
+	  	} USARTtxTransmit(rxreturn_ptr);
+
+	   */
+
+  } //end while
+
+}  //end main
+
+
+char* USART_rxRead(){
+
+	char* rxreturn = (char*)malloc(255 * sizeof(char));
+
+	uint bufferlen = 255;
+	int i = 0;
+
+	while(i < bufferlen){
+			rxreturn[i] = USART1->RXDATA;
+			++i;
+		}
+
+	return rxreturn;
+
+}
+
+void USART_txTransmit(char* txComm){
+
+	uint bufferlen = 255;
+	int i = 0;
+
+	while(i < bufferlen){
+		USART1->TXDATA = txComm[i];
+		++i;
+	}
+
+}
+
+
+
+void HFRCO_SetBand(int bandval){
+
+	switch(bandval){
+	case 1:
+		CMU->HFRCOCTRL = CMU_HFRCOCTRL_BAND_1MHZ; //OR THIS WITH THE VALUE SET AT 0X0EF81xx (DI page) you will need the DMA set for this
+		break;
+	case 7:
+		CMU->HFRCOCTRL = CMU_HFRCOCTRL_BAND_7MHZ;
+		break;
+	case 11:
+		CMU->HFRCOCTRL = CMU_HFRCOCTRL_BAND_11MHZ;
+		break;
+	case 14:
+		CMU->HFRCOCTRL = CMU_HFRCOCTRL_BAND_14MHZ;
+		break;
+	case 21:
+		CMU->HFRCOCTRL = CMU_HFRCOCTRL_BAND_21MHZ;
+		break;
+	}
+}
+
+void HFRCO_Enable(){
+
+	CMU->OSCENCMD |= _CMU_OSCENCMD_HFRCOEN_MASK;
+
+	/*
+	while(!(CMU->STATUS & _CMU_STATUS_HFRCOENS_MASK)){
+		//do nothing
+	}
+	*/
+
+	//return 0;
+
+} //end fn
+
+void HFXO_Setup(){
+
+	CMU->OSCENCMD |= _CMU_OSCENCMD_HFXOEN_MASK;
+	CMU->CTRL = (CMU_CTRL_HFXOTIMEOUT_1KCYCLES | CMU_CTRL_HFXOGLITCHDETEN);
+
+	/*
+	while(!(CMU->STATUS & _CMU_STATUS_HFXOENS_MASK)){
+		//do nothing
+	}
+	*/
+
+	//return 0;
+
+} //end fn
+
+void HFXO_Select(){
+
+	while(!(CMU->STATUS & CMU_STATUS_HFXORDY));{
+		} CMU->CMD = CMU_CMD_HFCLKSEL_HFXO;
+
+	  	if((CMU->STATUS & CMU_STATUS_HFXORDY) == CMU_STATUS_HFXORDY){
+	  	 	CMU->OSCENCMD = CMU_OSCENCMD_HFRCODIS;
+	}
+
+  	//return 0;
+
+} //end fn
+
+void USART_OvsSet(int rate){
+
+	 /*
+	  * Lower sampling gives better robustness but slower performance.
+	  * (X16, X8, X6, X4) X16 is standard rate with X16 oversampling in synchronous mode
+	  */
+
+	switch(rate){
+
+	case(4): USART1->CTRL |= USART_CTRL_OVS_X4; break;
+	case(6): USART1->CTRL |= USART_CTRL_OVS_X6; break;
+	case(8): USART1->CTRL |= USART_CTRL_OVS_X8; break;
+	case(16): USART1->CTRL |= USART_CTRL_OVS_X16; break;
+
+	}
+
+	//return 0;
+
+} //end fn
+
+void USART_ClearIRQ(){
+
+	/*
+	 * 	You have to clear the interrupt flags
+	 */
+
+	USART1->IFC = 0x11111111UL;
+	NVIC_ClearPendingIRQ(USART1_RX_IRQn);
+	NVIC_ClearPendingIRQ(USART1_TX_IRQn);
+
+} //end fn
+
+void USART_8N1(){
+
+	/*
+	 * Set USART as 8N1
+	 */
+
+	uint32_t Usart8N1 = (USART_FRAME_DATABITS_EIGHT | USART_FRAME_PARITY_NONE) | USART_FRAME_STOPBITS_ONE;
+	USART1->FRAME |= Usart8N1;
+
+
+	//TXBL and TXBIL interrupt flags are set when the buffer is empty, cleared when the buffer becomes non-empty
+
+	uint32_t SetCtrl = ((USART_CTRL_TXBIL_EMPTY | USART_CTRL_SYNC_DEFAULT) | USART_CTRL_TXDELAY_SINGLE);
+	USART1->CTRL = SetCtrl;
+
+} //end fn
+
+void USART_ClkPol(char boolean){
+
+	switch(boolean){
+	case(0): USART1->CTRL &= (!USART_CTRL_CLKPOL_IDLEHIGH); break;
+	case(1): USART1->CTRL |= USART_CTRL_CLKPOL_IDLEHIGH; break;
+	}
+}
+
+
+void GPIO_TxRxPinSetup(){
+
+
+	//Set Tx and Rx pin modes on zero gecko exp. header pins
+
+	uint32_t UsartTxRxSet= (GPIO_P_MODEL_MODE7_PUSHPULL | GPIO_P_MODEL_MODE6_INPUT);
+	GPIO->P[3].MODEL = UsartTxRxSet;
+
+} //end
+
+
+void USART_PinLocationSet(int location){
+
+	//SET THE LOCATION OF THE US1_TX/RX PINS, RELEVANT TO THE EXP. HEADERS
+	//in this case we are using exp. pins 4 and 6, which are GPIO pins PD7 & PD6
+	//US1_rx/tx are on PD6/7 when set to location 2 or 3.
+	//Also enable the tx and rx pins of the USART
+
+	uint32_t SetRoute;
+
+	switch(location){
+	case(1): SetRoute = (USART_ROUTE_LOCATION_LOC1 | USART_ROUTE_TXPEN) | USART_ROUTE_RXPEN; break;
+	case(2): SetRoute = (USART_ROUTE_LOCATION_LOC2 | USART_ROUTE_TXPEN) | USART_ROUTE_RXPEN; break;
+	case(3): SetRoute = (USART_ROUTE_LOCATION_LOC3 | USART_ROUTE_TXPEN) | USART_ROUTE_RXPEN; break;
+	default: SetRoute = (USART_ROUTE_LOCATION_LOC3 | USART_ROUTE_TXPEN) | USART_ROUTE_RXPEN; break;
+	}
+
+	USART1->ROUTE = SetRoute;
+
+}
+
+void USART_TxRxEnable(){
+
+	USART1->CMD |= (USART_CMD_TXEN | USART_CMD_RXEN);
+
+	while(!(USART1->STATUS & (USART_STATUS_TXENS | USART_STATUS_RXENS))){
+			//do nothing
+	}
+
+	//return 0;
+
+} //end fn
+
+void USART_SetBaud(int rate){
+
+	uint32_t clkmask_19200 = 0b00000010011001UL;
+	uint32_t clkmask_9600 = 0b00000010011001UL;
+
+
+	switch(rate){
+	case(9600):
+	USART1->CLKDIV = (_USART_CLKDIV_MASK & (clkmask_9600 <<6));
+	CMU->HFPERCLKDIV = (CMU_HFPERCLKDIV_HFPERCLKEN | _CMU_HFPERCLKDIV_HFPERCLKDIV_HFCLK4);
+	break;
+
+	case(19200):
+	USART1->CLKDIV = (_USART_CLKDIV_MASK & (clkmask_19200 <<6));
+	CMU->HFPERCLKDIV = (CMU_HFPERCLKDIV_HFPERCLKEN | _CMU_HFPERCLKDIV_HFPERCLKDIV_HFCLK2);
+	break;
+	}
+
+} //end fn
+
+
+void CMU_GPIOEnClk(){
+
+	CMU->HFPERCLKEN0 |= CMU_HFPERCLKEN0_GPIO;
+
+} //end fn
+
+void CMU_USARTEnClk(){
+
+	/*
+	 * Enable the CMU clock for the USART peripheral
+	 */
+
+	CMU->HFPERCLKEN0 |= CMU_HFPERCLKEN0_USART1;
+
+} //end fn

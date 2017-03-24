@@ -1,5 +1,9 @@
 while (1){
 
+/*
+ * Simply put this section, in place of the existing while, in the test code
+ */
+ 
 char* rxreturn_ptr = NULL;
 
 	  while(!(USART1->STATUS & USART_STATUS_RXFULL)){

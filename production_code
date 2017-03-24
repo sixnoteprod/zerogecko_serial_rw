@@ -1,7 +1,5 @@
-while (1){
-
 /*
- * Simply put this section, in place of the existing while, in the test code
+ * Simply put this section, in the while, in the test code and comment out the test logic 
  */
  
 char* rxreturn_ptr = NULL;
@@ -20,4 +18,3 @@ char* rxreturn_ptr = NULL;
 
 	  free(rxreturn_ptr);
     
-    }

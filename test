@@ -71,60 +71,29 @@ int main(void) {
   /* Infinite loop */
   while (1) {
 
-      /*
-	  char txComm[3] = "01";
-	  int i = 0;
-
-	  while(!(USART1->STATUS & USART_STATUS_TXBL)){
-	  			  //do nothing until buffer empty
-	  }
-	  USART1->TXDATA = txComm[i];
-	  i++;
-
-	   */
-
 	  char txComm[3] = "01";
 	  int txlen = strlen(txComm);
 
 	  for(int i=0; i < txlen; i++){
 	  		while(!(USART1->STATUS & USART_STATUS_TXBL)){
 	  		//do nothing until buffer empty
-	  }
+	  		}
 	  USART1->TXDATA = txComm[i];
 	  }
 
-
-
-
-
-	  /*
-
-	  char* rxreturn_ptr = NULL;
-
-	  	if(!(USART1->STATUS & USART_STATUS_RXFULL)){
-	  		USART1->IFC = _USART_IFC_RXFULL_DEFAULT;
-	  	} else {
-	  		rxreturn_ptr = USARTrxRead();
-
-	  	} USARTtxTransmit(rxreturn_ptr);
-
-	   */
 
   } //end while
 
 }  //end main
 
 
-char* USART_rxRead(){
+char* USART_rxRead(int bufferlen){
 
-	char* rxreturn = (char*)malloc(255 * sizeof(char));
+	char* rxreturn = (char*)malloc(bufferlen * sizeof(char));
 
-	uint bufferlen = 255;
-	int i = 0;
-
-	while(i < bufferlen){
+	for(uint i =0; i < bufferlen; i++){
 			rxreturn[i] = USART1->RXDATA;
-			++i;
+			//i++;
 		}
 
 	return rxreturn;
@@ -133,12 +102,12 @@ char* USART_rxRead(){
 
 void USART_txTransmit(char* txComm){
 
-	uint bufferlen = 255;
-	int i = 0;
+	uint bufferlen = strlen(txComm);
+	//int i = 0;
 
-	while(i < bufferlen){
+	for(uint i = 0; i < bufferlen; i++){
 		USART1->TXDATA = txComm[i];
-		++i;
+		//i++;
 	}
 
 }
